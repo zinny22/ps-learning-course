@@ -15,6 +15,7 @@ import type { CodeLanguage, ProblemNotes } from "../types";
 import { useProgressStore } from "../stores/progressStore";
 import { weeks } from "../data/weeks";
 import { problems } from "../data/problems";
+import { solutionTemplates } from "../data/solutionTemplates";
 import { NoteCard } from "../features/problem/NoteCard";
 import { CodeEditor } from "../features/problem/CodeEditor";
 import { CodeBlockViewer } from "../features/problem/CodeBlockViewer";
@@ -32,6 +33,10 @@ export default function ProblemDetailPage() {
   const { getStatus, updateStatus, getNotes, updateNotes } = useProgressStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isCodeExpanded, setIsCodeExpanded] = useState(false);
+  const [isSolutionVisible, setIsSolutionVisible] = useState(false);
+  const [isSolutionKeyPointsVisible, setIsSolutionKeyPointsVisible] =
+    useState(false);
+  const [isSolutionCodeVisible, setIsSolutionCodeVisible] = useState(false);
 
   const problem = problems.find((p) => p.id === problemId);
 
@@ -42,6 +47,74 @@ export default function ProblemDetailPage() {
   const week = weeks.find((w) => w.weekNumber === problem.week);
   const status = getStatus(problem.id);
   const notes = getNotes(problem.id);
+
+  const template = solutionTemplates[problem.id];
+  const templateLanguage = template?.codeLanguage ?? "js";
+
+  const handleToggleSolution = () => {
+    if (!template) {
+      window.alert("이 문제에 대한 정답/힌트가 아직 없습니다.");
+      return;
+    }
+
+    if (!isSolutionVisible) {
+      const ok = window.confirm(
+        "정답/힌트를 열면 스포일러가 될 수 있어요. 정말 열까요?"
+      );
+      if (!ok) return;
+    }
+
+    setIsSolutionVisible((v) => {
+      const next = !v;
+      if (!next) {
+        setIsSolutionKeyPointsVisible(false);
+        setIsSolutionCodeVisible(false);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleSolutionKeyPoints = () => {
+    if (!template) {
+      window.alert("이 문제에 대한 정답/힌트가 아직 없습니다.");
+      return;
+    }
+
+    if (!isSolutionVisible) {
+      window.alert("먼저 접근 아이디어(힌트)를 열어주세요.");
+      return;
+    }
+
+    if (!isSolutionKeyPointsVisible) {
+      const ok = window.confirm(
+        "핵심 포인트를 열면 스포일러가 더 강해질 수 있어요. 정말 볼까요?"
+      );
+      if (!ok) return;
+    }
+
+    setIsSolutionKeyPointsVisible((v) => !v);
+  };
+
+  const handleToggleSolutionCode = () => {
+    if (!template) {
+      window.alert("이 문제에 대한 정답/힌트가 아직 없습니다.");
+      return;
+    }
+
+    if (!isSolutionVisible) {
+      window.alert("먼저 힌트를 열어주세요.");
+      return;
+    }
+
+    if (!isSolutionCodeVisible) {
+      const ok = window.confirm(
+        "정답 코드까지 열면 스포일러가 더 강해져요. 정말 코드까지 볼까요?"
+      );
+      if (!ok) return;
+    }
+
+    setIsSolutionCodeVisible((v) => !v);
+  };
 
   const handleNoteChange = (field: keyof ProblemNotes, value: string) => {
     updateNotes(problem.id, { [field]: value });
@@ -109,6 +182,81 @@ export default function ProblemDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
         <div className="space-y-6">
+          <Card className="no-print">
+            <CardHeader>
+              <CardTitle className="text-lg">정답/힌트 (스포일러)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm text-gray-500">
+                {template
+                  ? isSolutionVisible
+                    ? isSolutionCodeVisible
+                      ? "접근 + 핵심 포인트 + 코드"
+                      : isSolutionKeyPointsVisible
+                      ? "접근 + 핵심 포인트"
+                      : "접근(힌트)"
+                    : "숨김"
+                  : "등록된 정답/힌트 없음"}
+              </div>
+
+              {!isSolutionVisible && (
+                <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  막혔을 때만 펼쳐보는 용도입니다. (스포일러 방지)
+                </div>
+              )}
+
+              {isSolutionVisible && template && (
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 mb-2">
+                        접근 아이디어
+                      </div>
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {template.approach || ""}
+                      </div>
+                    </div>
+                    {isSolutionKeyPointsVisible ? (
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 mb-2">
+                          핵심 포인트
+                        </div>
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {template.keyPoints || ""}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                        핵심 포인트는 아직 숨겨져 있습니다. 정말 필요할 때만
+                        우측의 “핵심 포인트 보기”를 눌러주세요.
+                      </div>
+                    )}
+                  </div>
+
+                  {!isSolutionCodeVisible && (
+                    <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      코드는 아직 숨겨져 있습니다. 정말 필요할 때만 “코드
+                      보기”를 눌러주세요.
+                    </div>
+                  )}
+
+                  {isSolutionCodeVisible && (
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 mb-2">
+                        정답 코드
+                      </div>
+                      <CodeBlockViewer
+                        code={template.code || ""}
+                        language={templateLanguage}
+                        minHeightClassName="min-h-[220px]"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <NoteCard
             title="문제 요약"
             icon={<span className="text-xl">🧠</span>}
@@ -253,6 +401,34 @@ export default function ProblemDetailPage() {
               <CardTitle className="text-base">작업</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleToggleSolution}
+              >
+                {isSolutionVisible ? "힌트 숨기기" : "힌트 보기"}
+              </Button>
+
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleToggleSolutionKeyPoints}
+                disabled={!template || !isSolutionVisible}
+              >
+                {isSolutionKeyPointsVisible
+                  ? "핵심 포인트 숨기기"
+                  : "핵심 포인트 보기"}
+              </Button>
+
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleToggleSolutionCode}
+                disabled={!template || !isSolutionVisible}
+              >
+                {isSolutionCodeVisible ? "코드 숨기기" : "코드 보기"}
+              </Button>
+
               <Button
                 className="w-full"
                 variant={isEditing ? "default" : "outline"}
