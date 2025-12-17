@@ -1,0 +1,298 @@
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+
+import { ProblemStatusToggle } from "../features/problem/ProblemStatusToggle";
+import { Button } from "../components/ui/Button";
+import { Badge } from "../components/ui/Badge";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+} from "../components/ui/Card";
+import type { CodeLanguage, ProblemNotes } from "../types";
+import { useProgressStore } from "../stores/progressStore";
+import { weeks } from "../data/weeks";
+import { problems } from "../data/problems";
+import { NoteCard } from "../features/problem/NoteCard";
+import { CodeEditor } from "../features/problem/CodeEditor";
+import { CodeBlockViewer } from "../features/problem/CodeBlockViewer";
+
+const languageOptions: { value: CodeLanguage; label: string }[] = [
+  { value: "tsx", label: "TSX" },
+  { value: "ts", label: "TS" },
+  { value: "jsx", label: "JSX" },
+  { value: "js", label: "JS" },
+  { value: "py", label: "PY" },
+];
+
+export default function ProblemDetailPage() {
+  const { problemId } = useParams();
+  const { getStatus, updateStatus, getNotes, updateNotes } = useProgressStore();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCodeExpanded, setIsCodeExpanded] = useState(false);
+
+  const problem = problems.find((p) => p.id === problemId);
+
+  if (!problem) {
+    return <div>Problem not found</div>;
+  }
+
+  const week = weeks.find((w) => w.weekNumber === problem.week);
+  const status = getStatus(problem.id);
+  const notes = getNotes(problem.id);
+
+  const handleNoteChange = (field: keyof ProblemNotes, value: string) => {
+    updateNotes(problem.id, { [field]: value });
+  };
+
+  const getPlatformUrl = () => {
+    if (problem.platform === "BOJ") {
+      return `https://www.acmicpc.net/problem/${problem.number}`;
+    }
+    return `https://school.programmers.co.kr/learn/courses/30/lessons/${problem.number}`;
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto pb-12">
+      <div className="print-only">
+        <div className="text-sm text-gray-600 font-medium">
+          {problem.platform}
+        </div>
+        <div className="text-3xl font-bold tracking-tight">{problem.title}</div>
+        <div className="text-sm text-gray-500">#{problem.number}</div>
+      </div>
+
+      <div className="mb-6 no-print">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="pl-0 hover:bg-transparent hover:text-blue-600"
+        >
+          <Link to="/problems">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Problems
+          </Link>
+        </Button>
+      </div>
+
+      <header className="mb-6 no-print">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{problem.platform}</Badge>
+            <span className="text-gray-500">#{problem.number}</span>
+            {week && (
+              <Link to={`/weeks/${week.id}`}>
+                <Badge variant="outline" className="hover:bg-gray-100">
+                  Week {week.weekNumber}
+                </Badge>
+              </Link>
+            )}
+          </div>
+
+          <h1 className="text-3xl font-bold tracking-tight">{problem.title}</h1>
+
+          <div className="flex flex-wrap gap-2">
+            {problem.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-sm text-gray-600 bg-white border border-gray-200 px-2 py-1 rounded-full"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+        <div className="space-y-6">
+          <NoteCard
+            title="문제 요약"
+            icon={<span className="text-xl">🧠</span>}
+            value={notes.summary}
+            placeholder="문제의 핵심 조건과 목표를 요약해주세요."
+            isEditing={isEditing}
+            onChange={(value) => handleNoteChange("summary", value)}
+          />
+
+          <NoteCard
+            title="접근 아이디어"
+            icon={<span className="text-xl">💡</span>}
+            value={notes.approach}
+            placeholder="어떤 알고리즘을 사용할지, 접근 방식을 적어주세요."
+            isEditing={isEditing}
+            onChange={(value) => handleNoteChange("approach", value)}
+            textareaClassName="focus:ring-amber-500"
+          />
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <NoteCard
+              title="핵심 포인트"
+              icon={<span className="text-xl">🧩</span>}
+              value={notes.keyPoints}
+              placeholder="문제 풀이의 핵심 로직이나 주의할 점을 적어주세요."
+              isEditing={isEditing}
+              onChange={(value) => handleNoteChange("keyPoints", value)}
+              textareaClassName="focus:ring-purple-500"
+              minHeightClassName="min-h-[150px]"
+            />
+
+            <NoteCard
+              title="내가 실수한 부분"
+              icon={<span className="text-xl">⚠️</span>}
+              value={notes.mistakes}
+              placeholder="실수했거나 놓쳤던 부분, 디버깅 내용을 적어주세요."
+              isEditing={isEditing}
+              onChange={(value) => handleNoteChange("mistakes", value)}
+              textareaClassName="focus:ring-red-500"
+              minHeightClassName="min-h-[150px]"
+            />
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <span className="text-xl">✅</span>
+                정답 코드
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing && (
+                <div className="mb-3 flex items-center justify-between gap-3 no-print">
+                  <div className="text-sm text-gray-500">언어</div>
+                  <select
+                    className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                    value={notes.codeLanguage}
+                    onChange={(e) =>
+                      handleNoteChange(
+                        "codeLanguage",
+                        e.target.value as CodeLanguage
+                      )
+                    }
+                    aria-label="코드 언어"
+                  >
+                    {languageOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {isEditing ? (
+                <CodeEditor
+                  value={notes.code}
+                  onChange={(value) => handleNoteChange("code", value)}
+                  placeholder={`// 여기에 코드를 작성하세요\n// 예) BFS 템플릿...`}
+                  language={notes.codeLanguage}
+                  className="border-green-200"
+                  minHeightClassName="min-h-[260px]"
+                />
+              ) : (
+                <div>
+                  <div className="mb-3 flex items-center justify-between no-print">
+                    <div className="text-sm text-gray-500">
+                      {isCodeExpanded ? "코드 펼침" : "코드 접힘"}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8"
+                      onClick={() => setIsCodeExpanded((v) => !v)}
+                    >
+                      {isCodeExpanded ? "접기" : "펼치기"}
+                    </Button>
+                  </div>
+
+                  {!isCodeExpanded && (
+                    <div className="no-print text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      코드가 접혀있습니다. 필요할 때 펼쳐서 확인하세요.
+                    </div>
+                  )}
+
+                  <div className={isCodeExpanded ? "" : "code-collapsed"}>
+                    <CodeBlockViewer
+                      code={notes.code}
+                      language={notes.codeLanguage}
+                      minHeightClassName="min-h-[260px]"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <NoteCard
+            title="한 줄 회고"
+            icon={<span className="text-xl">📝</span>}
+            value={notes.retrospective}
+            placeholder="이번 문제를 통해 배운 점을 한 줄로 요약해주세요."
+            isEditing={isEditing}
+            onChange={(value) => handleNoteChange("retrospective", value)}
+            minHeightClassName="min-h-[80px]"
+          />
+
+          <NoteCard
+            title="다시 풀기 기준"
+            icon={<span className="text-xl">🔁</span>}
+            value={notes.retryCriteria}
+            placeholder="이 문제를 언제 다시 풀어봐야 할지 기준을 적어주세요."
+            isEditing={isEditing}
+            onChange={(value) => handleNoteChange("retryCriteria", value)}
+            textareaClassName="focus:ring-orange-500"
+            minHeightClassName="min-h-[100px]"
+          />
+        </div>
+
+        <aside className="no-print lg:sticky lg:top-6 space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">작업</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                className="w-full"
+                variant={isEditing ? "default" : "outline"}
+                onClick={() => setIsEditing((v) => !v)}
+              >
+                {isEditing ? "저장/보기" : "수정하기"}
+              </Button>
+
+              <Button
+                className="w-full"
+                variant="ghost"
+                onClick={() => window.print()}
+              >
+                PDF로 저장
+              </Button>
+
+              <div className="pt-2">
+                <ProblemStatusToggle
+                  status={status}
+                  onStatusChange={(newStatus) =>
+                    updateStatus(problem.id, newStatus)
+                  }
+                />
+              </div>
+
+              <a
+                href={getPlatformUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button size="sm" className="w-full gap-2">
+                  Solve on {problem.platform}
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </a>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+    </div>
+  );
+}
