@@ -9,7 +9,13 @@ import {
 } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Checkbox } from "../components/ui/Checkbox";
-import { ArrowLeft, CheckCircle2, ListTodo, Lightbulb } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ListTodo,
+  Lightbulb,
+  BookOpen,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 import { useProgressStore } from "../stores/progressStore";
 import { weeks } from "../data/weeks";
@@ -52,6 +58,14 @@ export default function WeekDetailPage() {
             <p className="text-gray-500 max-w-2xl">
               Focus on mastering the core concepts and patterns for this week.
             </p>
+            <div className="mt-4">
+              <Button asChild className="gap-2">
+                <Link to={`/weeks/${weekId}/concepts`}>
+                  <BookOpen className="w-4 h-4" />
+                  기본 개념 학습하기
+                </Link>
+              </Button>
+            </div>
           </div>
           <Card className="min-w-[240px]">
             <CardContent className="pt-6">

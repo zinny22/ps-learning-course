@@ -25,6 +25,24 @@ export interface Week {
   difficulty: 1 | 2 | 3 | 4;
 }
 
+export interface ConceptSection {
+  title: string;
+  content: string; // Markdown supported
+  keywords?: string[];
+  codeExamples?: {
+    py: string;
+    js: string;
+    description?: string;
+  };
+}
+
+export interface Concept {
+  weekId: string;
+  title: string;
+  description: string;
+  sections: ConceptSection[];
+}
+
 export interface Problem {
   id: string;
   platform: ProblemPlatform;

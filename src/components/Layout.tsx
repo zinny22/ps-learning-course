@@ -5,11 +5,13 @@ import {
   ListTodo,
   BookOpen,
   Check,
+  Library,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { weeks } from "../data/weeks";
 import { problems } from "../data/problems";
 import { useProgressStore } from "../stores/progressStore";
+import ScrollToTop from "./ScrollToTop";
 
 export default function Layout() {
   const location = useLocation();
@@ -19,10 +21,12 @@ export default function Layout() {
     { name: "학습 코스", href: "/", icon: LayoutDashboard },
     { name: "주차별 계획", href: "/weeks", icon: Calendar },
     { name: "문제 은행", href: "/problems", icon: ListTodo },
+    { name: "기본 개념", href: "/concepts", icon: Library },
   ];
 
   return (
     <div className="min-h-screen flex bg-gray-50">
+      <ScrollToTop />
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 fixed inset-y-0 z-10 hidden md:flex flex-col">
         <div className="p-6 border-b border-gray-100 flex-shrink-0">
