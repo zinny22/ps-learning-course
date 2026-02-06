@@ -8,7 +8,7 @@ import {
   CardContent,
 } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { Settings, Github, Save, LogOut, User, Check } from "lucide-react";
+import { Settings, Github, Save, LogOut } from "lucide-react";
 
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
