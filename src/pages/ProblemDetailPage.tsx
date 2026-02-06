@@ -16,6 +16,13 @@ import { useProgressStore } from "../stores/progressStore";
 import { weeks } from "../data/weeks";
 import { problems } from "../data/problems";
 import { solutionTemplates } from "../data/solutionTemplates";
+import { useAuthStore } from "../stores/authStore";
+import {
+  buildProblemMarkdown,
+  buildProblemMarkdownPath,
+} from "../lib/problemMarkdown";
+import { upsertFile } from "../lib/githubClient";
+import { Github } from "lucide-react";
 import { NoteCard } from "../features/problem/NoteCard";
 import { CodeEditor } from "../features/problem/CodeEditor";
 import { CodeBlockViewer } from "../features/problem/CodeBlockViewer";
@@ -31,12 +38,14 @@ const languageOptions: { value: CodeLanguage; label: string }[] = [
 export default function ProblemDetailPage() {
   const { problemId } = useParams();
   const { getStatus, updateStatus, getNotes, updateNotes } = useProgressStore();
+  const { accessToken, owner, repo, branch, basePath } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isCodeExpanded, setIsCodeExpanded] = useState(false);
   const [isSolutionVisible, setIsSolutionVisible] = useState(false);
   const [isSolutionKeyPointsVisible, setIsSolutionKeyPointsVisible] =
     useState(false);
   const [isSolutionCodeVisible, setIsSolutionCodeVisible] = useState(false);
+  const [isPushingToGitHub, setIsPushingToGitHub] = useState(false);
 
   const problem = problems.find((p) => p.id === problemId);
 
@@ -59,7 +68,7 @@ export default function ProblemDetailPage() {
 
     if (!isSolutionVisible) {
       const ok = window.confirm(
-        "정답/힌트를 열면 스포일러가 될 수 있어요. 정말 열까요?"
+        "정답/힌트를 열면 스포일러가 될 수 있어요. 정말 열까요?",
       );
       if (!ok) return;
     }
@@ -87,7 +96,7 @@ export default function ProblemDetailPage() {
 
     if (!isSolutionKeyPointsVisible) {
       const ok = window.confirm(
-        "핵심 포인트를 열면 스포일러가 더 강해질 수 있어요. 정말 볼까요?"
+        "핵심 포인트를 열면 스포일러가 더 강해질 수 있어요. 정말 볼까요?",
       );
       if (!ok) return;
     }
@@ -108,7 +117,7 @@ export default function ProblemDetailPage() {
 
     if (!isSolutionCodeVisible) {
       const ok = window.confirm(
-        "정답 코드까지 열면 스포일러가 더 강해져요. 정말 코드까지 볼까요?"
+        "정답 코드까지 열면 스포일러가 더 강해져요. 정말 코드까지 볼까요?",
       );
       if (!ok) return;
     }
@@ -125,6 +134,50 @@ export default function ProblemDetailPage() {
       return `https://www.acmicpc.net/problem/${problem.number}`;
     }
     return `https://school.programmers.co.kr/learn/courses/30/lessons/${problem.number}`;
+  };
+
+  const handlePushToGitHub = async () => {
+    if (isPushingToGitHub) return;
+
+    if (!accessToken || !owner || !repo) {
+      window.alert("GitHub 연동 및 저장소 설정을 먼저 완료해주세요.");
+      return;
+    }
+
+    const platformUrl = getPlatformUrl();
+    const md = buildProblemMarkdown({
+      problem,
+      status,
+      notes,
+      platformUrl,
+    });
+
+    const path = buildProblemMarkdownPath({
+      basePath: basePath || "",
+      weekNumber: problem.week,
+      problemTitle: problem.title,
+      platform: problem.platform,
+      problemNumber: problem.number,
+    });
+
+    setIsPushingToGitHub(true);
+    try {
+      await upsertFile({
+        accessToken,
+        owner,
+        repo,
+        branch: branch || "main",
+        path,
+        content: md,
+        message: `Update ${problem.id}: ${problem.title}`,
+      });
+      window.alert(`GitHub에 업로드 완료: ${owner}/${repo}/${path}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      window.alert(`GitHub 업로드 실패: ${msg}`);
+    } finally {
+      setIsPushingToGitHub(false);
+    }
   };
 
   return (
@@ -193,8 +246,8 @@ export default function ProblemDetailPage() {
                     ? isSolutionCodeVisible
                       ? "접근 + 핵심 포인트 + 코드"
                       : isSolutionKeyPointsVisible
-                      ? "접근 + 핵심 포인트"
-                      : "접근(힌트)"
+                        ? "접근 + 핵심 포인트"
+                        : "접근(힌트)"
                     : "숨김"
                   : "등록된 정답/힌트 없음"}
               </div>
@@ -317,7 +370,7 @@ export default function ProblemDetailPage() {
                     onChange={(e) =>
                       handleNoteChange(
                         "codeLanguage",
-                        e.target.value as CodeLanguage
+                        e.target.value as CodeLanguage,
                       )
                     }
                     aria-label="코드 언어"
@@ -401,6 +454,45 @@ export default function ProblemDetailPage() {
               <CardTitle className="text-base">작업</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="space-y-2 border-b border-gray-100 pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <Github className="w-4 h-4" />
+                    GitHub 연동
+                  </div>
+                  <Link to="/settings">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-2"
+                    >
+                      설정
+                    </Button>
+                  </Link>
+                </div>
+                {accessToken && owner && repo ? (
+                  <div className="text-xs text-gray-500 truncate">
+                    연결됨:{" "}
+                    <span className="font-mono text-blue-600">
+                      {owner}/{repo}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
+                    설정에서 GitHub 연동이 필요합니다.
+                  </div>
+                )}
+              </div>
+
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handlePushToGitHub}
+                disabled={isPushingToGitHub || !accessToken}
+              >
+                {isPushingToGitHub ? "푸시 중..." : "GitHub로 푸시"}
+              </Button>
+
               <Button
                 className="w-full"
                 variant="outline"

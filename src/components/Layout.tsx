@@ -6,6 +6,7 @@ import {
   BookOpen,
   Check,
   Library,
+  Settings,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { weeks } from "../data/weeks";
@@ -22,6 +23,7 @@ export default function Layout() {
     { name: "주차별 계획", href: "/weeks", icon: Calendar },
     { name: "문제 은행", href: "/problems", icon: ListTodo },
     { name: "기본 개념", href: "/concepts", icon: Library },
+    { name: "설정", href: "/settings", icon: Settings },
   ];
 
   return (
@@ -48,13 +50,13 @@ export default function Layout() {
                     "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
                     isActive
                       ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
                   )}
                 >
                   <item.icon
                     className={cn(
                       "w-5 h-5",
-                      isActive ? "text-blue-600" : "text-gray-400"
+                      isActive ? "text-blue-600" : "text-gray-400",
                     )}
                   />
                   {item.name}
@@ -73,7 +75,7 @@ export default function Layout() {
             {weeks.map((week) => {
               const isActive = location.pathname === `/weeks/${week.id}`;
               const weekProblems = problems.filter(
-                (p) => p.week === week.weekNumber
+                (p) => p.week === week.weekNumber,
               );
               const isCompleted =
                 weekProblems.length > 0 &&
@@ -87,7 +89,7 @@ export default function Layout() {
                     "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors group",
                     isActive
                       ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                   )}
                 >
                   <span
@@ -96,8 +98,8 @@ export default function Layout() {
                       isCompleted
                         ? "bg-blue-600 border-blue-600 text-white"
                         : isActive
-                        ? "bg-white border-gray-200 text-blue-600"
-                        : "bg-white border-gray-200 text-gray-400 group-hover:border-gray-300 group-hover:text-gray-500"
+                          ? "bg-white border-gray-200 text-blue-600"
+                          : "bg-white border-gray-200 text-gray-400 group-hover:border-gray-300 group-hover:text-gray-500",
                     )}
                   >
                     {isCompleted ? (

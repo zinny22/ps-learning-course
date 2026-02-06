@@ -6,6 +6,7 @@ import ConceptPage from "../pages/ConceptPage";
 import AllConceptsPage from "../pages/AllConceptsPage";
 import ProblemsPage from "../pages/ProblemsPage";
 import ProblemDetailPage from "../pages/ProblemDetailPage";
+import SettingsPage from "../pages/SettingsPage";
 import Layout from "../components/Layout";
 
 export const router = createBrowserRouter([
@@ -40,6 +41,10 @@ export const router = createBrowserRouter([
       {
         path: "/problems/:problemId",
         element: <ProblemDetailPage />,
+      },
+      {
+        path: "/settings",
+        element: <SettingsPage />,
       },
     ],
   },
